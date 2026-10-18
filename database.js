@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
+const { createClient } = require('@supabase/supabase-js');
 
 const DATA_DIR = process.env.DATA_DIR || process.env.PERSISTENT_DATA_PATH || path.join(__dirname, 'data');
 const DB_PATH = path.join(DATA_DIR, 'db.json');
@@ -210,7 +211,22 @@ let cachedDb = null;
 class Database {
   constructor() {
     this.isMongo = false;
+    this.isSupabase = false;
+    this.initSupabase();
     this.initLocal();
+  }
+
+  initSupabase() {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (url && key) {
+      try {
+        this.supabase = createClient(url, key);
+        this.isSupabase = true;
+      } catch (err) {
+        console.error('⚠️ Gagal inisialisasi Supabase client:', err.message);
+      }
+    }
   }
 
   initLocal() {
@@ -240,8 +256,15 @@ class Database {
     }
   }
 
-  // Connect to MongoDB Atlas if MONGODB_URI is provided
+  // Connect to Supabase or MongoDB Atlas
   async connect() {
+    if (!this.isSupabase) {
+      this.initSupabase();
+    }
+    if (this.isSupabase) {
+      return;
+    }
+
     if (!process.env.MONGODB_URI) {
       this.isMongo = false;
       return;
@@ -306,6 +329,15 @@ class Database {
   }
 
   async getStudents() {
+    if (this.isSupabase) {
+      try {
+        const { data, error } = await this.supabase.from('students').select('*');
+        if (!error && data && data.length > 0) return data;
+      } catch (err) {
+        console.error('Supabase getStudents error:', err.message);
+      }
+      return defaultData.students;
+    }
     if (this.isMongo) {
       return await StudentModel.find().lean();
     }
@@ -346,6 +378,15 @@ class Database {
   }
 
   async getTeachers() {
+    if (this.isSupabase) {
+      try {
+        const { data, error } = await this.supabase.from('teachers').select('*');
+        if (!error && data && data.length > 0) return data;
+      } catch (err) {
+        console.error('Supabase getTeachers error:', err.message);
+      }
+      return defaultData.teachers;
+    }
     if (this.isMongo) {
       return await TeacherModel.find().lean();
     }
@@ -379,6 +420,15 @@ class Database {
   }
 
   async getAttendances() {
+    if (this.isSupabase) {
+      try {
+        const { data, error } = await this.supabase.from('attendances').select('*');
+        if (!error && data) return data;
+      } catch (err) {
+        console.error('Supabase getAttendances error:', err.message);
+      }
+      return [];
+    }
     if (this.isMongo) {
       return await AttendanceModel.find().lean();
     }
@@ -391,7 +441,17 @@ class Database {
     const students = await this.getStudents();
     let attendances = [];
 
-    if (this.isMongo) {
+    if (this.isSupabase) {
+      try {
+        const { data, error } = await this.supabase
+          .from('attendances')
+          .select('*')
+          .eq('tanggal', todayStr);
+        if (!error && data) attendances = data;
+      } catch (err) {
+        console.error('Supabase getAttendanceToday error:', err.message);
+      }
+    } else if (this.isMongo) {
       attendances = await AttendanceModel.find({ tanggal: todayStr }).lean();
     } else {
       const data = this.read();
@@ -409,6 +469,30 @@ class Database {
   }
 
   async saveAttendance(record) {
+    if (this.isSupabase) {
+      try {
+        const { data: existing } = await this.supabase
+          .from('attendances')
+          .select('id')
+          .eq('student_id', record.student_id)
+          .eq('tanggal', record.tanggal)
+          .maybeSingle();
+
+        const toSave = {
+          ...record,
+          id: existing?.id || record.id || `att-${Date.now()}`,
+          updated_at: new Date().toISOString()
+        };
+        if (!toSave.created_at) toSave.created_at = new Date().toISOString();
+
+        await this.supabase.from('attendances').upsert(toSave);
+        return toSave;
+      } catch (err) {
+        console.error('Supabase saveAttendance error:', err.message);
+      }
+      return record;
+    }
+
     if (this.isMongo) {
       const query = { student_id: record.student_id, tanggal: record.tanggal };
       const existing = await AttendanceModel.findOne(query);
@@ -453,6 +537,15 @@ class Database {
       id: studentData.id || `siswa-${Date.now()}`,
       role: 'siswa'
     };
+
+    if (this.isSupabase) {
+      try {
+        await this.supabase.from('students').insert(newStudent);
+      } catch (err) {
+        console.error('Supabase addStudent error:', err.message);
+      }
+      return newStudent;
+    }
 
     if (this.isMongo) {
       await StudentModel.create(newStudent);
