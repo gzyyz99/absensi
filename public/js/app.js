@@ -29,6 +29,14 @@ const app = {
     return this.holidays[dateStr] || null;
   },
 
+  // Helper to format local date YYYY-MM-DD (WIB / Local timezone, NOT UTC)
+  getLocalDateString(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  },
+
   // Initialize
   async init() {
     this.startClock();
@@ -48,8 +56,8 @@ const app = {
 
     // Setup recap date inputs default to this month
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const todayStr = now.toISOString().split('T')[0];
+    const firstDay = this.getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+    const todayStr = this.getLocalDateString(now);
     const sInput = document.getElementById('recapStartDate');
     const eInput = document.getElementById('recapEndDate');
     if (sInput) sInput.value = firstDay;
@@ -265,7 +273,7 @@ const app = {
       const history = await res.json();
       this.renderStudentHistory(history);
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = this.getLocalDateString();
       const todayAtt = history.find(a => a.tanggal === todayStr);
 
       const badge = document.getElementById('badgeStatusHariIni');
@@ -569,7 +577,7 @@ const app = {
 
   // Leave / Sakit modal
   openLeaveModal() {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = this.getLocalDateString();
     const holidayToday = this.getHoliday(todayStr);
     const now = new Date();
     if (now.getDay() === 0 || now.getDay() === 6) {
@@ -709,7 +717,7 @@ const app = {
   async loadTodayMonitoring() {
     if (this.currentUser?.role !== 'guru') return;
     try {
-      const res = await this.apiFetch('/api/attendances/today');
+      const res = await this.apiFetch('/api/attendances/today?_t=' + Date.now());
       if (!res.ok) throw new Error('Akses ditolak');
       this.todayData = await res.json();
 

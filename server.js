@@ -1,3 +1,4 @@
+process.env.TZ = 'Asia/Jakarta';
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -26,25 +27,36 @@ app.use(async (req, res, next) => {
 // Static directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Helper to format date YYYY-MM-DD
+// Helper to format date YYYY-MM-DD in Asia/Jakarta (WIB)
 function getTodayString() {
   const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d);
 }
 
 function getCurrentTime() {
   const d = new Date();
-  return d.toTimeString().substring(0, 5); // HH:MM
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(d);
 }
 
-// Helper to check if a date is a weekend (Saturday or Sunday)
+// Helper to check if a date is a weekend (Saturday or Sunday) in Asia/Jakarta
 function isWeekend(dateStr) {
   let d;
   if (!dateStr) {
-    d = new Date();
+    const dayStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jakarta',
+      weekday: 'short'
+    }).format(new Date());
+    return dayStr === 'Sat' || dayStr === 'Sun';
   } else {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
@@ -52,9 +64,9 @@ function isWeekend(dateStr) {
     } else {
       d = new Date(dateStr);
     }
+    const day = d.getDay();
+    return day === 0 || day === 6; // 0 = Minggu, 6 = Sabtu
   }
-  const day = d.getDay();
-  return day === 0 || day === 6; // 0 = Minggu, 6 = Sabtu
 }
 
 // Daftar Hari Libur Nasional / Tanggal Merah Indonesia (2026/2027)
@@ -166,12 +178,13 @@ app.post('/api/students', requireGuru, async (req, res) => {
 
 // 4. Daily Monitoring (Today's Attendances - ONLY GURU)
 app.get('/api/attendances/today', requireGuru, async (req, res) => {
-  const isTodayWeekend = isWeekend();
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const todayStr = getTodayString();
+  const isTodayWeekend = isWeekend(todayStr);
   const holidayName = getHolidayName(todayStr);
   const isTodayOff = isDayOff(todayStr);
 
-  const list = await db.getAttendanceToday();
+  const list = await db.getAttendanceToday(todayStr);
   const settings = await db.getSettings();
 
   const total = list.length;

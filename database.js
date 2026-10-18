@@ -1,3 +1,4 @@
+process.env.TZ = 'Asia/Jakarta';
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -6,16 +7,18 @@ const { createClient } = require('@supabase/supabase-js');
 const DATA_DIR = process.env.DATA_DIR || process.env.PERSISTENT_DATA_PATH || path.join(__dirname, 'data');
 const DB_PATH = path.join(DATA_DIR, 'db.json');
 
-// Helper to get formatted local date (YYYY-MM-DD)
+// Helper to get formatted local date (YYYY-MM-DD) in Asia/Jakarta (WIB)
 function getTodayString(offsetDays = 0) {
   const d = new Date();
   if (offsetDays !== 0) {
     d.setDate(d.getDate() + offsetDays);
   }
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d);
 }
 
 const defaultData = {
@@ -436,8 +439,8 @@ class Database {
     return data.attendances || [];
   }
 
-  async getAttendanceToday() {
-    const todayStr = getTodayString(0);
+  async getAttendanceToday(customDate) {
+    const todayStr = customDate || getTodayString(0);
     const students = await this.getStudents();
     let attendances = [];
 
