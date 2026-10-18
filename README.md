@@ -68,9 +68,38 @@ Buka peramban (browser) di:
 
 ---
 
-## 🌐 Cara Deploy ke Vercel (Online 24/7 & Bisa Diupdate Kapan Saja)
+## 🌐 Cara Deploy ke Render.com (Online 24/7 & Gratis)
 
-Aplikasi ini sudah dipersiapkan dengan arsitektur **Dual-Mode** (bisa jalan lokal dan bisa langsung connect ke MongoDB Atlas di Vercel).
+Aplikasi ini sudah dilengkapi dengan file blueprint `render.yaml` dan siap langsung dideploy ke **Render.com**.
+
+### Langkah Mudah Deploy ke Render:
+1. **Buat Repository Baru di GitHub**:
+   - Buka [github.com/new](https://github.com/new)
+   - Beri nama repository, misalnya: `absensi-pkl-smkn3bogor` (atur Public atau Private).
+   - Klik **Create repository**.
+
+2. **Push Kode dari Komputer Anda ke GitHub**:
+   Jalankan perintah ini di terminal VS Code:
+   ```bash
+   git remote add origin https://github.com/USERNAME_KAMU/NAMA_REPO_KAMU.git
+   git push -u origin main
+   ```
+
+3. **Deploy di Render.com**:
+   - Buka [dashboard.render.com](https://dashboard.render.com/) (Daftar/Login dengan GitHub).
+   - Klik **"New +"** lalu pilih **"Web Service"**.
+   - Hubungkan ke repository GitHub yang baru Anda buat (`absensi-pkl-smkn3bogor`).
+   - Render akan otomatis membaca konfigurasi `render.yaml`:
+     - **Build Command**: `npm install`
+     - **Start Command**: `npm start`
+     - **Instance Type**: `Free`
+   - Klik **"Deploy Web Service"**!
+   - Tunggu 1–2 menit, Render akan memberikan URL publik aktif seperti:
+     👉 `https://absensi-siswa-pkl.onrender.com`
+
+---
+
+## 🌐 Alternatif: Deploy ke Vercel (Menggunakan MongoDB Atlas)
 
 ### 1. Buat Database MongoDB Atlas Gratis (5 Menit)
 1. Buka [mongodb.com/atlas](https://www.mongodb.com/atlas) dan daftar akun gratis.
