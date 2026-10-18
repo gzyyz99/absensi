@@ -1,0 +1,140 @@
+{
+  "settings": {
+    "nama_sekolah": "SMKN 3 Bogor",
+    "tahun_ajaran": "2026/2027",
+    "nama_guru": "Nunik Wulan Saptowati, S.T.P."
+  },
+  "teachers": [
+    {
+      "id": "guru-1",
+      "nama": "Nunik Wulan Saptowati, S.T.P.",
+      "alias": [
+        "nunik",
+        "nunik wulan",
+        "nunik wulan saptowati",
+        "nunik wulan aptowati",
+        "saptowati",
+        "guru"
+      ],
+      "password": "absensi123#",
+      "role": "guru"
+    }
+  ],
+  "students": [
+    {
+      "id": "siswa-2",
+      "nama": "Abdul Kholik Ramadhan",
+      "kelas": "XII TKJ 1",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "Bank BJB KCP Tajur",
+      "alamat_dudi": "Jl. Raya Tajur, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-3",
+      "nama": "Pradava Evans Herlambang",
+      "kelas": "XII TKJ 1",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "Bank BJB KCP Tajur",
+      "alamat_dudi": "Jl. Raya Tajur, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-4",
+      "nama": "Raditya Rasia Purnama",
+      "kelas": "XII TKJ 1",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "Bank BJB KCP Tajur",
+      "alamat_dudi": "Jl. Raya Tajur, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-5",
+      "nama": "Fairuz Izni Nabila",
+      "alias": [
+        "fairus izni nabila",
+        "fairuz izni nabila"
+      ],
+      "kelas": "XII TKJ 2",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "Bank BJB KC Sudirman",
+      "alamat_dudi": "Jl. Jend. Sudirman No. 13, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-1",
+      "nama": "Raden Muhamad Bagir Ramadhan",
+      "kelas": "XII TKJ 3",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "Bank BJB KCP Tanah Sareal",
+      "alamat_dudi": "Jl. Sholeh Iskandar, Tanah Sareal, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-6",
+      "nama": "Faathir Azhar Murdilangga",
+      "kelas": "XII TKJ 3",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "Bank BJB KCP Padjajaran",
+      "alamat_dudi": "Jl. Raya Pajajaran, Baranangsiang, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-7",
+      "nama": "Faraulla Ilmira",
+      "kelas": "XII TKJ 3",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "DPRD Kota Bogor",
+      "alamat_dudi": "Jl. Pemuda No. 25, Tanah Sareal, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-8",
+      "nama": "Nashwa Zalifa Gusmi",
+      "kelas": "XII TKJ 3",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "DPRD Kota Bogor",
+      "alamat_dudi": "Jl. Pemuda No. 25, Tanah Sareal, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-9",
+      "nama": "Nazwa Syifa Pratama",
+      "kelas": "XII TKJ 3",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "DPRD Kota Bogor",
+      "alamat_dudi": "Jl. Pemuda No. 25, Tanah Sareal, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-10",
+      "nama": "Muhamad Rayhan Riyadi",
+      "kelas": "XII TKJ 3",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "Dinas Pariwisata & Kebudayaan Kota Bogor",
+      "alamat_dudi": "Jl. Pandu Raya No. 45, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    },
+    {
+      "id": "siswa-11",
+      "nama": "Nur Fadly Erdiansyah",
+      "kelas": "XII TKJ 3",
+      "jurusan": "Teknik Komputer dan Jaringan",
+      "dudi": "Dinas Pariwisata & Kebudayaan Kota Bogor",
+      "alamat_dudi": "Jl. Pandu Raya No. 45, Kota Bogor",
+      "guru_pembimbing": "Nunik Wulan Saptowati, S.T.P.",
+      "role": "siswa"
+    }
+  ],
+  "attendances": []
+}

@@ -1,0 +1,67 @@
+/* Custom Styles for Absensi PKL */
+
+/* Glassmorphism accents */
+.backdrop-blur-xs {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Camera Video Aspect Ratio */
+.aspect-4\/3 {
+  aspect-ratio: 4 / 3;
+}
+
+/* Print Friendly Styles for Teacher Recap */
+@media print {
+  header, 
+  #switchUserBtn, 
+  #guruTabMonitoring,
+  #guruTabSiswa,
+  .no-print,
+  button {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  #viewGuru {
+    display: block !important;
+  }
+
+  #guruTabRekap {
+    display: block !important;
+  }
+
+  .shadow-xs, .shadow-md, .shadow-lg, .shadow-xl {
+    box-shadow: none !important;
+  }
+
+  .border {
+    border-color: #e2e8f0 !important;
+  }
+}
+

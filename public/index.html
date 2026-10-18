@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Absensi Siswa PKL</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen antialiased flex flex-col">
+
+  <!-- ================= TOP NAVIGATION BAR ================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Title -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+            <i data-lucide="calendar-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              Absensi Siswa PKL
+            </h1>
+            <p id="schoolSubtitle" class="text-xs text-slate-500 font-medium">SMKN 3 Bogor</p>
+          </div>
+        </div>
+
+        <!-- Top Right: Time & Logged User Badge -->
+        <div class="flex items-center space-x-3 sm:space-x-4">
+          <!-- Live Time Display -->
+          <div class="hidden md:flex flex-col text-right">
+            <span id="liveClock" class="text-sm font-semibold text-slate-700 tracking-wider">00:00:00 WIB</span>
+            <span id="liveDate" class="text-xs text-slate-400">Jumat, 16 Okt 2026</span>
+          </div>
+
+          <!-- User Profile & Logout (Hanya tampil jika login) -->
+          <div id="userProfileNav" class="hidden flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+            <span id="roleBadge" class="text-[11px] px-2 py-0.5 rounded-full font-bold"></span>
+            <span id="currentUserLabel" class="text-xs font-bold text-slate-800 max-w-[150px] truncate"></span>
+            <button onclick="app.logout()" title="Keluar / Ganti Akun" class="ml-1 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ================= VIEW 1: DASHBOARD GURU PEMBIMBING ================= -->
+    <div id="viewGuru" class="space-y-6 hidden">
+      
+      <!-- Greeting & Header Action -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-brand-900 via-brand-800 to-indigo-900 rounded-2xl p-6 text-white shadow-lg">
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-500/30 text-brand-200 border border-brand-400/20 mb-2">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Portal Guru Pembimbing PKL
+          </span>
+          <h2 class="text-xl sm:text-2xl font-bold">Halo, <span id="guruNamaHeader">Nunik Wulan Saptowati, S.T.P.</span> 👋</h2>
+          <p class="text-brand-200 text-sm mt-1">Pantau kehadiran harian seluruh siswa bimbingan Anda dan unduh rekapitulasi.</p>
+        </div>
+        <div class="flex flex-wrap gap-2.5">
+          <button onclick="app.openAddStudentModal()" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition border border-white/10 backdrop-blur-xs">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Tambah Siswa
+          </button>
+          <button onclick="app.downloadExcelRecap()" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-emerald-600/30 transition">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Download Rekap Excel
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Cards (Tanpa Terlambat) -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <!-- Total Siswa -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-indigo-50 text-brand-600 flex items-center justify-center">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div id="statTotal" class="text-xl font-bold text-slate-800">0</div>
+            <div class="text-xs text-slate-500">Total Siswa PKL</div>
+          </div>
+        </div>
+
+        <!-- Hadir -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div id="statHadir" class="text-xl font-bold text-emerald-600">0</div>
+            <div class="text-xs text-slate-500">Hadir Hari Ini</div>
+          </div>
+        </div>
+
+        <!-- Izin / Sakit -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div id="statIzin" class="text-xl font-bold text-blue-600">0</div>
+            <div class="text-xs text-slate-500">Izin / Sakit</div>
+          </div>
+        </div>
+
+        <!-- Belum Absen -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+            <i data-lucide="alert-circle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div id="statBelum" class="text-xl font-bold text-rose-600">0</div>
+            <div class="text-xs text-slate-500">Belum Absen</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs Guru -->
+      <div class="border-b border-slate-200 flex space-x-6 text-sm font-semibold">
+        <button onclick="app.setGuruTab('monitoring')" id="tabBtnMonitoring" class="pb-3 border-b-2 border-brand-600 text-brand-600 flex items-center gap-2">
+          <i data-lucide="activity" class="w-4 h-4"></i> Pemantauan Hari Ini
+        </button>
+        <button onclick="app.setGuruTab('rekap')" id="tabBtnRekap" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Rekapitulasi Kehadiran
+        </button>
+        <button onclick="app.setGuruTab('siswa')" id="tabBtnSiswa" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+          <i data-lucide="building-2" class="w-4 h-4"></i> Data Siswa & DUDI
+        </button>
+      </div>
+
+      <!-- TAB 1: PEMANTAUAN HARI INI -->
+      <div id="guruTabMonitoring" class="space-y-4">
+        <!-- Filter Bar -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <div class="relative w-full sm:w-72">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+              <input type="text" id="searchTodayInput" oninput="app.filterTodayTable()" placeholder="Cari siswa atau tempat PKL..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-brand-600">
+            </div>
+            <select id="filterStatusToday" onchange="app.filterTodayTable()" class="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-brand-600 bg-white">
+              <option value="ALL">Semua Status</option>
+              <option value="Hadir">Hadir</option>
+              <option value="Izin">Izin / Sakit</option>
+              <option value="Belum Absen">Belum Absen</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-500">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Real-time Update otomatis
+          </div>
+        </div>
+
+        <!-- Table Monitoring Hari Ini (Tanpa Foto & Tanpa Jurnal) -->
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold text-xs uppercase tracking-wider">
+                <tr>
+                  <th class="py-3 px-4">Nama Siswa</th>
+                  <th class="py-3 px-4">Kelas</th>
+                  <th class="py-3 px-4">Tempat PKL (DUDI)</th>
+                  <th class="py-3 px-4 text-center">Jam Masuk (Diisi)</th>
+                  <th class="py-3 px-4 text-center">Jam Pulang (Diisi)</th>
+                  <th class="py-3 px-4 text-center">Status</th>
+                  <th class="py-3 px-4 text-center">Waktu Mengisi Absen</th>
+                </tr>
+              </thead>
+              <tbody id="todayAttendanceTableBody" class="divide-y divide-slate-100">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: REKAPITULASI KEHADIRAN -->
+      <div id="guruTabRekap" class="space-y-4 hidden">
+        <!-- Date filter and export controls -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+          <div class="flex flex-wrap items-center gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Dari Tanggal</label>
+              <input type="date" id="recapStartDate" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-brand-600">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Sampai Tanggal</label>
+              <input type="date" id="recapEndDate" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-brand-600">
+            </div>
+            <div class="pt-5">
+              <button onclick="app.loadRecapData()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
+                Terapkan Filter
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 pt-5">
+            <button onclick="app.downloadExcelRecap()" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-xs transition">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export Excel (.xlsx)
+            </button>
+            <button onclick="window.print()" class="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2 rounded-lg transition">
+              <i data-lucide="printer" class="w-4 h-4"></i> Cetak / PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Rekapitulasi Table -->
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i data-lucide="table" class="w-4 h-4 text-brand-600"></i> Rekapitulasi Kehadiran Siswa PKL
+            </h3>
+            <span class="text-xs text-slate-500" id="recapPeriodLabel">Bulan Berjalan</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50/50 text-slate-600 border-b border-slate-200 text-xs font-semibold uppercase">
+                <tr>
+                  <th class="py-3 px-4">No</th>
+                  <th class="py-3 px-4">Nama Siswa</th>
+                  <th class="py-3 px-4">Kelas</th>
+                  <th class="py-3 px-4">Tempat PKL (DUDI)</th>
+                  <th class="py-3 px-4 text-center">Hadir</th>
+                  <th class="py-3 px-4 text-center">Izin</th>
+                  <th class="py-3 px-4 text-center">Sakit</th>
+                  <th class="py-3 px-4 text-center">Belum Absen</th>
+                  <th class="py-3 px-4 text-center">Persentase</th>
+                </tr>
+              </thead>
+              <tbody id="recapSummaryTableBody" class="divide-y divide-slate-100">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Log Harian Presensi Lengkap -->
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="p-4 bg-slate-50 border-b border-slate-200">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i data-lucide="clock" class="w-4 h-4 text-brand-600"></i> Log Harian Presensi
+            </h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50/50 text-slate-600 border-b border-slate-200 text-xs font-semibold uppercase">
+                <tr>
+                  <th class="py-3 px-4">Tanggal</th>
+                  <th class="py-3 px-4">Nama Siswa</th>
+                  <th class="py-3 px-4">Kelas</th>
+                  <th class="py-3 px-4">Tempat PKL</th>
+                  <th class="py-3 px-4">Jam Masuk</th>
+                  <th class="py-3 px-4">Jam Pulang</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4">Keterangan</th>
+                </tr>
+              </thead>
+              <tbody id="recapDetailLogsBody" class="divide-y divide-slate-100">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: DATA SISWA & DUDI -->
+      <div id="guruTabSiswa" class="space-y-4 hidden">
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-slate-800 text-sm">Daftar Siswa Bimbingan PKL</h3>
+              <p class="text-xs text-slate-500">Kelola data siswa dan perusahaan tempat PKL</p>
+            </div>
+            <button onclick="app.openAddStudentModal()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition">
+              <i data-lucide="plus" class="w-4 h-4"></i> Tambah Siswa
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50/50 text-slate-600 border-b border-slate-200 text-xs font-semibold uppercase">
+                <tr>
+                  <th class="py-3 px-4">Nama Siswa</th>
+                  <th class="py-3 px-4">Kelas & Jurusan</th>
+                  <th class="py-3 px-4">Tempat PKL (DUDI)</th>
+                  <th class="py-3 px-4">Alamat Tempat PKL</th>
+                  <th class="py-3 px-4">No. WhatsApp</th>
+                </tr>
+              </thead>
+              <tbody id="studentsMasterTableBody" class="divide-y divide-slate-100">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= VIEW 2: TAMPILAN SISWA PKL (HANYA UNTUK ABSEN) ================= -->
+    <div id="viewSiswa" class="max-w-lg mx-auto space-y-5 hidden">
+      
+      <!-- Student Profile Card -->
+      <div class="bg-gradient-to-tr from-brand-700 via-indigo-600 to-indigo-500 rounded-3xl p-6 text-white shadow-xl shadow-brand-500/10 relative overflow-hidden">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/20 text-white backdrop-blur-xs">
+              <i data-lucide="user-check" class="w-3 h-3"></i> Siswa PKL
+            </span>
+            <h2 id="siswaNama" class="text-xl font-bold pt-1">Ahmad Bagir</h2>
+            <p id="siswaKelas" class="text-brand-100 text-xs">XII RPL 1</p>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white border border-white/20">
+            <i data-lucide="user" class="w-6 h-6"></i>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-white/20 flex flex-col gap-1.5 text-xs text-brand-100">
+          <div class="flex items-center gap-2">
+            <i data-lucide="building" class="w-3.5 h-3.5 text-white"></i>
+            <span class="font-medium text-white" id="siswaDudi">PT Telkom Indonesia</span>
+          </div>
+          <div class="flex items-center gap-2 text-[11px] text-brand-200">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+            <span id="siswaAlamatDudi">Jl. Ketintang No. 156, Surabaya</span>
+          </div>
+          <div class="flex items-center gap-2 text-[11px] text-brand-200">
+            <i data-lucide="award" class="w-3.5 h-3.5"></i>
+            <span>Guru Pembimbing: <strong class="text-white" id="siswaGuru">Nunik Wulan Saptowati, S.T.P.</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Presensi Card Hari Ini (Sederhana: Sekali Klik Absen Masuk & Pulang) -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm">Presensi Hari Ini</h3>
+            <p id="presensiDateLabel" class="text-xs text-slate-400">Jumat, 16 Oktober 2026</p>
+          </div>
+          <span id="badgeStatusHariIni" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+            Belum Absen
+          </span>
+        </div>
+
+        <!-- Input Jam Masuk & Jam Pulang oleh Siswa -->
+        <div class="space-y-3">
+          
+          <!-- Box Input Absen Masuk -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase">
+                <i data-lucide="log-in" class="w-4 h-4 text-brand-600"></i> Jam Masuk PKL
+              </label>
+              <span id="siswaStatusMasuk" class="text-[11px] font-semibold text-slate-400">Belum Disimpan</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="time" id="inputJamMasuk" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-brand-600">
+              <button id="btnAbsenMasuk" onclick="app.doClockIn()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 shrink-0">
+                <i data-lucide="check" class="w-4 h-4"></i> Simpan Masuk
+              </button>
+            </div>
+            <div id="infoSubmitMasuk" class="text-[10px] text-slate-400 italic">Isi jam masuk Anda, lalu klik Simpan Masuk.</div>
+          </div>
+
+          <!-- Box Input Absen Pulang -->
+          <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase">
+                <i data-lucide="log-out" class="w-4 h-4 text-slate-700"></i> Jam Pulang PKL
+              </label>
+              <span id="siswaStatusPulang" class="text-[11px] font-semibold text-slate-400">Belum Disimpan</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="time" id="inputJamPulang" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-brand-600">
+              <button id="btnAbsenPulang" onclick="app.doClockOut()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 shrink-0">
+                <i data-lucide="check" class="w-4 h-4"></i> Simpan Pulang
+              </button>
+            </div>
+            <div id="infoSubmitPulang" class="text-[10px] text-slate-400 italic">Isi jam pulang Anda saat selesai PKL.</div>
+          </div>
+
+        </div>
+
+        <!-- Tombol Izin / Sakit -->
+        <div>
+          <button onclick="app.openLeaveModal()" class="w-full flex items-center justify-center gap-1.5 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition">
+            <i data-lucide="file-question" class="w-4 h-4 text-blue-500"></i> Pengajuan Izin / Sakit Hari Ini
+          </button>
+        </div>
+      </div>
+
+      <!-- Riwayat Kehadiran Pribadi Siswa -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-brand-600"></i> Riwayat Kehadiran Saya
+          </h3>
+          <span class="text-xs text-slate-400">Histori Pribadi</span>
+        </div>
+        <div id="studentHistoryList" class="space-y-3">
+          <!-- Populated via app.js -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= VIEW 3: LOGIN FORM ================= -->
+    <div id="viewLogin" class="max-w-md mx-auto my-8 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 mx-auto flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+          <i data-lucide="user-check" class="w-7 h-7"></i>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Masuk Presensi PKL</h2>
+        <p class="text-xs text-slate-500">SMKN 3 Bogor • Bimbingan Ibu Nunik Wulan Saptowati, S.T.P.</p>
+      </div>
+
+      <!-- Tab Switcher Siswa vs Guru -->
+      <div class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1.5 rounded-2xl text-xs font-bold">
+        <button id="loginRoleSiswaBtn" type="button" onclick="app.setLoginRole('siswa')" class="py-2.5 rounded-xl bg-white shadow-xs text-brand-600 flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="user" class="w-3.5 h-3.5"></i> Siswa PKL (11 Murid)
+        </button>
+        <button id="loginRoleGuruBtn" type="button" onclick="app.setLoginRole('guru')" class="py-2.5 rounded-xl text-slate-600 flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i> Guru Pembimbing
+        </button>
+      </div>
+
+      <!-- Role Information Alert -->
+      <div id="loginRoleNotice" class="p-3 bg-brand-50 border border-brand-100 rounded-xl text-xs text-brand-800 flex items-start gap-2">
+        <i data-lucide="info" class="w-4 h-4 text-brand-600 shrink-0 mt-0.5"></i>
+        <span id="loginNoticeText">
+          <strong>Akses Siswa:</strong> Pilih atau ketik nama Anda dan kelas untuk melakukan absensi kehadiran.
+        </span>
+      </div>
+
+      <!-- FORM LOGIN SISWA (NAMA & KELAS DENGAN AUTOCOMPLETE 11 SISWA) -->
+      <form id="loginFormSiswa" onsubmit="app.handleStudentLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Siswa</label>
+          <input type="text" id="loginSiswaNama" list="datalistSiswaBogor" required placeholder="Ketik atau pilih nama Anda..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-brand-600">
+          <datalist id="datalistSiswaBogor">
+            <option value="Raden Muhamad Bagir Ramadhan">Bank BJB Tanah Sareal</option>
+            <option value="Abdul Kholik Ramadhan">Bank BJB Tajur</option>
+            <option value="Pradava Evans Herlambang">Bank BJB Tajur</option>
+            <option value="Raditya Rasia Purnama">Bank BJB Tajur</option>
+            <option value="Fairuz Izni Nabila">Bank BJB Sudirman</option>
+            <option value="Faathir Azhar Murdilangga">Bank BJB Padjajaran</option>
+            <option value="Faraulla Ilmira">DPRD Kota Bogor</option>
+            <option value="Nashwa Zalifa Gusmi">DPRD Kota Bogor</option>
+            <option value="Nazwa Syifa Pratama">DPRD Kota Bogor</option>
+            <option value="Muhamad Rayhan Riyadi">Dinas Pariwisata</option>
+            <option value="Nur Fadly Erdiansyah">Dinas Pariwisata</option>
+          </datalist>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Kelas</label>
+          <input type="text" id="loginSiswaKelas" value="XII" required placeholder="XII" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-brand-600">
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md shadow-brand-600/20 transition flex items-center justify-center gap-2">
+          <i data-lucide="log-in" class="w-4 h-4"></i> Masuk untuk Absen
+        </button>
+      </form>
+
+      <!-- FORM LOGIN GURU (NAMA & PASSWORD) -->
+      <form id="loginFormGuru" onsubmit="app.handleTeacherLogin(event)" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Guru Pembimbing</label>
+          <input type="text" id="loginGuruNama" value="Nunik Wulan Saptowati, S.T.P." placeholder="Nunik Wulan Saptowati, S.T.P." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-brand-600">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+          <input type="password" id="loginGuruPassword" value="" placeholder="Masukkan password guru..." required autocomplete="off" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-brand-600">
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2">
+          <i data-lucide="shield-check" class="w-4 h-4"></i> Masuk Dashboard Guru
+        </button>
+      </form>
+    </div>
+
+  </main>
+
+  <!-- ================= MODAL: FORM IZIN / SAKIT ================= -->
+  <div id="leaveModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl space-y-4">
+      <div class="px-6 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Pengajuan Izin / Sakit</h3>
+          <p class="text-xs text-slate-500">Kirim pemberitahuan ke Guru Pembimbing</p>
+        </div>
+        <button onclick="app.closeLeaveModal()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="leaveForm" onsubmit="app.handleLeaveSubmit(event)" class="px-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Status Kehadiran</label>
+          <select id="leaveType" class="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:outline-brand-600 bg-white">
+            <option value="Izin">Izin (Ada Keperluan / Acara)</option>
+            <option value="Sakit">Sakit (Kondisi Tidak Sehat)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Keterangan / Alasan</label>
+          <textarea id="leaveReason" rows="3" required placeholder="Tuliskan alasan izin atau sakit secara singkat..." class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:outline-brand-600"></textarea>
+        </div>
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="app.closeLeaveModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700">Kirim Keterangan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: TAMBAH SISWA BARU (GURU) ================= -->
+  <div id="addStudentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl space-y-4">
+      <div class="px-6 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Tambah Siswa Bimbingan PKL</h3>
+          <p class="text-xs text-slate-500">Daftarkan siswa baru beserta tempat magangnya</p>
+        </div>
+        <button onclick="app.closeAddStudentModal()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="addStudentForm" onsubmit="app.handleAddStudent(event)" class="px-6 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nama Siswa</label>
+            <input type="text" id="newSiswaNama" required placeholder="Nama Lengkap" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-brand-600">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Kelas</label>
+            <input type="text" id="newSiswaKelas" required placeholder="XII RPL 1" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-brand-600">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Jurusan</label>
+          <input type="text" id="newSiswaJurusan" required placeholder="Rekayasa Perangkat Lunak" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-brand-600">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nama Perusahaan / Tempat PKL (DUDI)</label>
+          <input type="text" id="newSiswaDudi" required placeholder="Contoh: PT Telkom Akses" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-brand-600">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Alamat Tempat PKL</label>
+          <input type="text" id="newSiswaAlamat" placeholder="Jl. Raya ..." class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-brand-600">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">No. WhatsApp Siswa</label>
+          <input type="text" id="newSiswaHp" placeholder="08123456789" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-brand-600">
+        </div>
+        <div class="pt-3 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="app.closeAddStudentModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700">Simpan Siswa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= TOAST NOTIFICATION ================= -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- App Script -->
+  <script src="/js/app.js"></script>
+</body>
+</html>
