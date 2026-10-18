@@ -57,6 +57,41 @@ function isWeekend(dateStr) {
   return day === 0 || day === 6; // 0 = Minggu, 6 = Sabtu
 }
 
+// Daftar Hari Libur Nasional / Tanggal Merah Indonesia (2026/2027)
+const NATIONAL_HOLIDAYS = {
+  '2026-01-01': 'Tahun Baru 2026 Masehi',
+  '2026-01-16': "Isra Mi'raj Nabi Muhammad SAW",
+  '2026-02-17': 'Tahun Baru Imlek 2577 Kongzili',
+  '2026-03-20': 'Hari Suci Nyepi (Tahun Baru Saka 1948)',
+  '2026-03-21': 'Hari Raya Idul Fitri 1447 H',
+  '2026-03-22': 'Hari Raya Idul Fitri 1447 H',
+  '2026-04-03': 'Wafat Yesus Kristus',
+  '2026-05-01': 'Hari Buruh Internasional',
+  '2026-05-14': 'Kenaikan Yesus Kristus',
+  '2026-05-27': 'Hari Raya Idul Adha 1447 H',
+  '2026-05-31': 'Hari Raya Waisak 2570 BE',
+  '2026-06-01': 'Hari Lahir Pancasila',
+  '2026-06-16': 'Tahun Baru Islam 1448 H',
+  '2026-08-17': 'Hari Kemerdekaan Republik Indonesia',
+  '2026-08-25': 'Maulid Nabi Muhammad SAW',
+  '2026-12-25': 'Hari Raya Natal',
+  '2027-01-01': 'Tahun Baru 2027 Masehi',
+  '2027-02-06': 'Tahun Baru Imlek 2578 Kongzili',
+  '2027-03-10': 'Hari Raya Idul Fitri 1448 H',
+  '2027-03-11': 'Hari Raya Idul Fitri 1448 H',
+  '2027-05-01': 'Hari Buruh Internasional',
+  '2027-08-17': 'Hari Kemerdekaan Republik Indonesia'
+};
+
+function getHolidayName(dateStr) {
+  const d = dateStr || getTodayString();
+  return NATIONAL_HOLIDAYS[d] || null;
+}
+
+function isDayOff(dateStr) {
+  return isWeekend(dateStr) || !!getHolidayName(dateStr);
+}
+
 // Middleware: Require Guru Role for Monitoring & Recaps
 function requireGuru(req, res, next) {
   const role = req.headers['x-user-role'] || req.query.role;
@@ -132,8 +167,11 @@ app.post('/api/students', requireGuru, async (req, res) => {
 // 4. Daily Monitoring (Today's Attendances - ONLY GURU)
 app.get('/api/attendances/today', requireGuru, async (req, res) => {
   const isTodayWeekend = isWeekend();
-  const list = await db.getAttendanceToday();
   const todayStr = getTodayString();
+  const holidayName = getHolidayName(todayStr);
+  const isTodayOff = isDayOff(todayStr);
+
+  const list = await db.getAttendanceToday();
   const settings = await db.getSettings();
 
   const total = list.length;
@@ -141,12 +179,15 @@ app.get('/api/attendances/today', requireGuru, async (req, res) => {
   const izinSakit = list.filter(
     item => item.attendance && (item.attendance.status === 'Izin' || item.attendance.status === 'Sakit')
   ).length;
-  // Jika hari Sabtu atau Minggu: belumAbsen = 0 (Libur PKL, tidak dianggap alfa)
-  const belumAbsen = isTodayWeekend ? 0 : list.filter(item => !item.attendance).length;
+  // Jika hari Sabtu, Minggu, atau Tanggal Merah Libur Nasional: belumAbsen = 0 (tidak dianggap alfa)
+  const belumAbsen = isTodayOff ? 0 : list.filter(item => !item.attendance).length;
 
   res.json({
     tanggal: todayStr,
     isWeekend: isTodayWeekend,
+    isHoliday: !!holidayName,
+    holidayName: holidayName,
+    isDayOff: isTodayOff,
     summary: {
       total,
       hadir,
@@ -160,11 +201,20 @@ app.get('/api/attendances/today', requireGuru, async (req, res) => {
 
 // 5. Student Attendance Actions (Clock In, Clock Out, Leave)
 // Jam Masuk & Pulang diisi oleh siswa, Waktu submit otomatis dicatat
-// Presensi hanya berlaku hari Senin sampai Jumat (Sabtu & Minggu libur)
+// Presensi hanya berlaku hari kerja (Senin - Jumat, di luar Tanggal Merah)
+// SISWA TIDAK DAPAT ABSEN MASUK / PULANG 2 KALI
 app.post('/api/attendances/clock-in', async (req, res) => {
+  const todayStr = getTodayString();
+  const holidayName = getHolidayName(todayStr);
+
   if (isWeekend()) {
     return res.status(400).json({
       error: 'Hari ini libur akhir pekan (Sabtu/Minggu). Presensi hanya dapat diisi pada hari kerja (Senin - Jumat).'
+    });
+  }
+  if (holidayName) {
+    return res.status(400).json({
+      error: `Hari ini Tanggal Merah / Libur Nasional (${holidayName}). Tidak ada presensi PKL.`
     });
   }
 
@@ -174,13 +224,23 @@ app.post('/api/attendances/clock-in', async (req, res) => {
     return res.status(400).json({ error: 'ID Siswa wajib diisi' });
   }
 
-  const todayStr = getTodayString();
   const currentSubmitTime = getCurrentTime() + ' WIB';
   const finalJamMasuk = jam_masuk || getCurrentTime();
 
-  // Check existing attendance for today
+  // Cek apakah siswa sudah pernah absen masuk hari ini (TIDAK BISA ABSEN 2 KALI)
   const existingList = await db.getAttendances();
   const existing = existingList.find(a => a.student_id === student_id && a.tanggal === todayStr);
+
+  if (existing && existing.jam_masuk && existing.jam_masuk !== '-') {
+    return res.status(400).json({
+      error: 'Anda sudah melakukan absen masuk hari ini. Tidak dapat melakukan absen masuk 2 kali.'
+    });
+  }
+  if (existing && (existing.status === 'Izin' || existing.status === 'Sakit')) {
+    return res.status(400).json({
+      error: `Anda sudah tercatat ${existing.status} hari ini. Tidak dapat melakukan absen masuk.`
+    });
+  }
 
   const record = {
     ...(existing || {}),
@@ -201,9 +261,17 @@ app.post('/api/attendances/clock-in', async (req, res) => {
 });
 
 app.post('/api/attendances/clock-out', async (req, res) => {
+  const todayStr = getTodayString();
+  const holidayName = getHolidayName(todayStr);
+
   if (isWeekend()) {
     return res.status(400).json({
       error: 'Hari ini libur akhir pekan (Sabtu/Minggu). Presensi hanya dapat diisi pada hari kerja (Senin - Jumat).'
+    });
+  }
+  if (holidayName) {
+    return res.status(400).json({
+      error: `Hari ini Tanggal Merah / Libur Nasional (${holidayName}). Tidak ada presensi PKL.`
     });
   }
 
@@ -213,15 +281,21 @@ app.post('/api/attendances/clock-out', async (req, res) => {
     return res.status(400).json({ error: 'ID Siswa wajib diisi' });
   }
 
-  const todayStr = getTodayString();
   const currentSubmitTime = getCurrentTime() + ' WIB';
   const finalJamPulang = jam_pulang || getCurrentTime();
 
   const existingList = await db.getAttendances();
   const existing = existingList.find(a => a.student_id === student_id && a.tanggal === todayStr);
 
-  if (!existing) {
+  if (!existing || !existing.jam_masuk || existing.jam_masuk === '-') {
     return res.status(400).json({ error: 'Anda belum melakukan absen masuk hari ini' });
+  }
+
+  // Cek apakah siswa sudah pernah absen pulang hari ini (TIDAK BISA ABSEN 2 KALI)
+  if (existing.jam_pulang && existing.jam_pulang !== '-') {
+    return res.status(400).json({
+      error: 'Anda sudah melakukan absen pulang hari ini. Presensi hari ini sudah lengkap.'
+    });
   }
 
   const record = {
@@ -240,9 +314,17 @@ app.post('/api/attendances/clock-out', async (req, res) => {
 
 // Leave / Sakit report
 app.post('/api/attendances/leave', async (req, res) => {
+  const todayStr = getTodayString();
+  const holidayName = getHolidayName(todayStr);
+
   if (isWeekend()) {
     return res.status(400).json({
       error: 'Hari ini libur akhir pekan (Sabtu/Minggu). Pengajuan izin/sakit hanya dapat dilakukan pada hari kerja (Senin - Jumat).'
+    });
+  }
+  if (holidayName) {
+    return res.status(400).json({
+      error: `Hari ini Tanggal Merah / Libur Nasional (${holidayName}). Tidak perlu mengajukan izin.`
     });
   }
 
@@ -251,9 +333,16 @@ app.post('/api/attendances/leave', async (req, res) => {
     return res.status(400).json({ error: 'Data izin tidak lengkap' });
   }
 
-  const todayStr = getTodayString();
-  const currentSubmitTime = getCurrentTime() + ' WIB';
+  // Cek apakah siswa sudah memiliki catatan presensi hari ini
+  const existingList = await db.getAttendances();
+  const existing = existingList.find(a => a.student_id === student_id && a.tanggal === todayStr);
+  if (existing) {
+    return res.status(400).json({
+      error: 'Anda sudah memiliki catatan presensi untuk hari ini.'
+    });
+  }
 
+  const currentSubmitTime = getCurrentTime() + ' WIB';
   const record = {
     student_id,
     tanggal: todayStr,
@@ -275,15 +364,15 @@ app.get('/api/attendances/recap', requireGuru, async (req, res) => {
   const students = await db.getStudents();
   const attendances = await db.getAttendances();
 
-  // Hanya perhitungkan hari kerja (Senin - Jumat), abaikan Sabtu & Minggu
+  // Hanya perhitungkan hari kerja (Senin - Jumat), abaikan akhir pekan & tanggal merah
   const filtered = attendances.filter(a => {
-    if (isWeekend(a.tanggal)) return false;
+    if (isDayOff(a.tanggal)) return false;
     if (startDate && a.tanggal < startDate) return false;
     if (endDate && a.tanggal > endDate) return false;
     return true;
   });
 
-  const distinctDates = [...new Set(filtered.map(a => a.tanggal))].filter(d => !isWeekend(d));
+  const distinctDates = [...new Set(filtered.map(a => a.tanggal))].filter(d => !isDayOff(d));
   const totalDays = distinctDates.length;
 
   const summaryPerStudent = students.map(s => {
@@ -345,15 +434,15 @@ app.get('/api/export/excel', requireGuru, async (req, res) => {
     const settings = await db.getSettings();
     const teachers = await db.getTeachers();
 
-    // Hanya perhitungkan hari kerja (Senin - Jumat), abaikan Sabtu & Minggu
+    // Hanya perhitungkan hari kerja (Senin - Jumat), abaikan akhir pekan & tanggal merah
     const filtered = attendances.filter(a => {
-      if (isWeekend(a.tanggal)) return false;
+      if (isDayOff(a.tanggal)) return false;
       if (startDate && a.tanggal < startDate) return false;
       if (endDate && a.tanggal > endDate) return false;
       return true;
     });
 
-    const distinctDates = [...new Set(filtered.map(a => a.tanggal))].filter(d => !isWeekend(d));
+    const distinctDates = [...new Set(filtered.map(a => a.tanggal))].filter(d => !isDayOff(d));
     const totalDays = distinctDates.length;
 
     const summaryData = students.map(s => {

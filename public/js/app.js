@@ -6,6 +6,28 @@ const app = {
   todayData: null,
   activeGuruTab: 'monitoring',
   loginSelectedRole: 'siswa',
+  holidays: {
+    '2026-01-01': 'Tahun Baru 2026 Masehi',
+    '2026-01-16': "Isra Mi'raj Nabi Muhammad SAW",
+    '2026-02-17': 'Tahun Baru Imlek 2577 Kongzili',
+    '2026-03-20': 'Hari Suci Nyepi (Tahun Baru Saka 1948)',
+    '2026-03-21': 'Hari Raya Idul Fitri 1447 H',
+    '2026-03-22': 'Hari Raya Idul Fitri 1447 H',
+    '2026-04-03': 'Wafat Yesus Kristus',
+    '2026-05-01': 'Hari Buruh Internasional',
+    '2026-05-14': 'Kenaikan Yesus Kristus',
+    '2026-05-27': 'Hari Raya Idul Adha 1447 H',
+    '2026-05-31': 'Hari Raya Waisak 2570 BE',
+    '2026-06-01': 'Hari Lahir Pancasila',
+    '2026-06-16': 'Tahun Baru Islam 1448 H',
+    '2026-08-17': 'Hari Kemerdekaan RI',
+    '2026-08-25': 'Maulid Nabi Muhammad SAW',
+    '2026-12-25': 'Hari Raya Natal'
+  },
+
+  getHoliday(dateStr) {
+    return this.holidays[dateStr] || null;
+  },
 
   // Initialize
   async init() {
@@ -265,6 +287,7 @@ const app = {
       };
 
       const isWeekendToday = (now.getDay() === 0 || now.getDay() === 6);
+      const holidayToday = this.getHoliday(todayStr);
 
       if (todayAtt) {
         // Attendance status today
@@ -350,6 +373,44 @@ const app = {
             btnPulang.classList.add('opacity-50', 'pointer-events-none');
           }
           if (statusPulang) statusPulang.textContent = '-';
+        }
+      } else if (holidayToday) {
+        // HARI LIBUR NASIONAL / TANGGAL MERAH - TIDAK PERLU ABSEN & TIDAK DIANGGAP ALFA
+        badge.textContent = `Tanggal Merah: ${holidayToday}`;
+        badge.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200';
+
+        if (inputMasuk) {
+          inputMasuk.value = '--:--';
+          inputMasuk.disabled = true;
+        }
+        if (statusMasuk) {
+          statusMasuk.textContent = 'Libur Nasional';
+          statusMasuk.className = 'text-[11px] font-semibold text-rose-600';
+        }
+        if (infoSubmitMasuk) {
+          infoSubmitMasuk.innerHTML = `<span class="text-rose-600 font-medium">Hari ini Tanggal Merah (${holidayToday}). Presensi libur.</span>`;
+        }
+        if (btnMasuk) {
+          btnMasuk.disabled = true;
+          btnMasuk.classList.add('opacity-50', 'pointer-events-none');
+          btnMasuk.innerHTML = '<i data-lucide="coffee" class="w-4 h-4"></i> Libur Nasional';
+        }
+
+        if (inputPulang) {
+          inputPulang.value = '--:--';
+          inputPulang.disabled = true;
+        }
+        if (statusPulang) {
+          statusPulang.textContent = 'Libur Nasional';
+          statusPulang.className = 'text-[11px] font-semibold text-rose-600';
+        }
+        if (infoSubmitPulang) {
+          infoSubmitPulang.innerHTML = '<span class="text-slate-400">Tidak ada presensi di tanggal merah.</span>';
+        }
+        if (btnPulang) {
+          btnPulang.disabled = true;
+          btnPulang.classList.add('opacity-50', 'pointer-events-none');
+          btnPulang.innerHTML = '<i data-lucide="coffee" class="w-4 h-4"></i> Libur Nasional';
         }
       } else if (isWeekendToday) {
         // HARI LIBUR AKHIR PEKAN (SABTU & MINGGU) - TIDAK PERLU ABSEN & TIDAK DIANGGAP ALFA
@@ -508,9 +569,15 @@ const app = {
 
   // Leave / Sakit modal
   openLeaveModal() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const holidayToday = this.getHoliday(todayStr);
     const now = new Date();
     if (now.getDay() === 0 || now.getDay() === 6) {
       this.showToast('Hari ini Libur Akhir Pekan. Pengajuan izin/sakit hanya berlaku pada hari Senin s/d Jumat.', 'info');
+      return;
+    }
+    if (holidayToday) {
+      this.showToast(`Hari ini Tanggal Merah (${holidayToday}). Tidak perlu mengajukan izin/sakit.`, 'info');
       return;
     }
     document.getElementById('leaveModal').classList.remove('hidden');
@@ -649,8 +716,13 @@ const app = {
       // Render summary stats (Tanpa terlambat)
       document.getElementById('statTotal').textContent = this.todayData.summary.total;
       document.getElementById('statHadir').textContent = this.todayData.summary.hadir;
-      document.getElementById('statIzin').textContent = this.todayData.summary.izinSakit;
-      document.getElementById('statBelum').textContent = this.todayData.isWeekend ? '0 (Libur)' : this.todayData.summary.belumAbsen;
+      let belumLabel = this.todayData.summary.belumAbsen;
+      if (this.todayData.isHoliday) {
+        belumLabel = `0 (Libur: ${this.todayData.holidayName})`;
+      } else if (this.todayData.isWeekend) {
+        belumLabel = '0 (Libur)';
+      }
+      document.getElementById('statBelum').textContent = belumLabel;
 
       this.filterTodayTable();
     } catch (err) {
