@@ -724,6 +724,7 @@ const app = {
       // Render summary stats (Tanpa terlambat)
       document.getElementById('statTotal').textContent = this.todayData.summary.total;
       document.getElementById('statHadir').textContent = this.todayData.summary.hadir;
+      document.getElementById('statIzin').textContent = this.todayData.summary.izinSakit;
       let belumLabel = this.todayData.summary.belumAbsen;
       if (this.todayData.isHoliday) {
         belumLabel = `0 (Libur: ${this.todayData.holidayName})`;
