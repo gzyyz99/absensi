@@ -27,6 +27,46 @@ app.use(async (req, res, next) => {
 // Static directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ======================== TELEGRAM NOTIFICATION (GURU ONLY) ========================
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8041167839:AAF9SE5ejEA5usxbC1uzNMiGARjX_v4A4tQ';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6526730008';
+
+let lastTeacherNotifyTime = 0; // Cooldown timer (mencegah spam jika guru refresh halaman)
+const NOTIFY_COOLDOWN_MS = 20 * 60 * 1000; // Jeda 20 menit per notifikasi
+
+async function notifyTeacherActivity(activityName, guruName = 'Nunik Wulan Saptowati, S.T.P.') {
+  const now = Date.now();
+  if (now - lastTeacherNotifyTime < NOTIFY_COOLDOWN_MS) {
+    return; // Masih dalam masa jeda / cooldown
+  }
+  lastTeacherNotifyTime = now;
+
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+
+  const dateStr = getTodayString();
+  const timeStr = getCurrentTime() + ' WIB';
+  const text = `🔔 *Notifikasi Absensi PKL*\n\n` +
+               `👩‍🏫 *Guru Pembimbing:* ${guruName}\n` +
+               `📌 *Aktivitas:* ${activityName}\n` +
+               `⏰ *Waktu:* ${timeStr}\n` +
+               `📅 *Tanggal:* ${dateStr}`;
+
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text,
+        parse_mode: 'Markdown'
+      })
+    });
+  } catch (err) {
+    console.error('Gagal mengirim notifikasi Telegram:', err.message);
+  }
+}
+
 // Helper to format date YYYY-MM-DD in Asia/Jakarta (WIB)
 function getTodayString() {
   const d = new Date();
@@ -132,6 +172,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
     const guru = await db.findTeacherByNameAndPassword(nama, password);
     if (guru) {
+      notifyTeacherActivity('Berhasil Login ke Dashboard', guru.nama);
       return res.json({ success: true, user: guru, role: 'guru' });
     }
     return res.status(401).json({ success: false, message: 'Nama Guru atau Password salah' });
@@ -178,6 +219,7 @@ app.post('/api/students', requireGuru, async (req, res) => {
 
 // 4. Daily Monitoring (Today's Attendances - ONLY GURU)
 app.get('/api/attendances/today', requireGuru, async (req, res) => {
+  notifyTeacherActivity('Membuka / Memantau Dashboard Presensi');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const todayStr = getTodayString();
   const isTodayWeekend = isWeekend(todayStr);
