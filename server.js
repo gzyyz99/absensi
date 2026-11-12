@@ -28,11 +28,11 @@ app.use(async (req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ======================== TELEGRAM NOTIFICATION (GURU ONLY) ========================
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8041167839:AAF9SE5ejEA5usxbC1uzNMiGARjX_v4A4tQ';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8841167839:AAF9SE5ejEA5usxbC1uzNMiGARjX_v4A4tQ';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6526730008';
 
 let lastTeacherNotifyTime = 0; // Cooldown timer (mencegah spam jika guru refresh halaman)
-const NOTIFY_COOLDOWN_MS = 20 * 60 * 1000; // Jeda 20 menit per notifikasi
+const NOTIFY_COOLDOWN_MS = 5 * 60 * 1000; // Jeda 5 menit per notifikasi
 
 async function notifyTeacherActivity(activityName, guruName = 'Nunik Wulan Saptowati, S.T.P.') {
   const now = Date.now();
